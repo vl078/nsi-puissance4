@@ -1,22 +1,22 @@
 import numpy as np
 
-# Constantes du jeu
+# Constantes du jeu avec emojis 🎮
 LIGNES = 6
 COLONNES = 7
-VIDE = 0
-JOUEUR_1 = 1  # Joueur 1
-JOUEUR_2 = 2  # Joueur 2
+VIDE = "⚪"  # Case vide
+JOUEUR_1 = "🔴"  # Pion rouge
+JOUEUR_2 = "🔵"  # Pion jaune
 
 # Création de la grille
 def creer_grille():
-    return np.zeros((LIGNES, COLONNES), int)
+    return np.full((LIGNES, COLONNES), VIDE)  # Remplir avec les cases vides
 
 # Affichage de la grille
 def afficher_grille(grille):
     print("\n")
-    for ligne in grille:
-        print(" | ".join(str(x) for x in ligne))
-        print("-" * 29)
+    for ligne in reversed(grille):  # Affichage du bas vers le haut
+        print(" | ".join(ligne))
+        print("-" * 36)
 
 # Vérifier si un emplacement est valide
 def est_valide(grille, col):
@@ -60,20 +60,19 @@ def verifie_gagnant(grille, joueur):
 # Fonction principale du jeu
 def puissance4():
     grille = creer_grille()
-    tour = 0  # Tour du joueur, 0 pour Joueur 1, 1 pour Joueur 2
     joueur = JOUEUR_1  # Joueur 1 commence
+    
     while True:
         afficher_grille(grille)
-        try:
-            # Demander à l'utilisateur de choisir une colonne
-            col = int(input(f"Joueur {joueur} (1 ou 2), choisissez une colonne (0 à 6) : "))
-            if col < 0 or col >= COLONNES or not est_valide(grille, col):
-                print("Colonne invalide ou pleine. Essayez encore.")
-                continue
-        except ValueError:
-            print("Veuillez entrer un numéro de colonne valide.")
-            continue
         
+        col = input(f"🕹 Joueur {joueur}, choisissez une colonne (0 à {COLONNES-1}) : ")
+
+        # Vérifications avec assert
+        assert col.isdigit(), "❌ Erreur : Veuillez entrer un numéro valide."
+        col = int(col)
+        assert 0 <= col < COLONNES, "❌ Erreur : Colonne hors limites."
+        assert est_valide(grille, col), "❌ Erreur : Colonne pleine, choisissez une autre."
+
         # Placer le pion
         ligne = obtenir_ligne(grille, col)
         grille[ligne][col] = joueur
@@ -81,13 +80,13 @@ def puissance4():
         # Vérification du gagnant
         if verifie_gagnant(grille, joueur):
             afficher_grille(grille)
-            print(f"Le joueur {joueur} a gagné !")
+            print(f"🎉 Le joueur {joueur} a gagné !")
             break
 
         # Vérification match nul (grille pleine)
         if np.all(grille != VIDE):
             afficher_grille(grille)
-            print("Match nul !")
+            print("⚖ Match nul !")
             break
 
         # Changer de joueur
