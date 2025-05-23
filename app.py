@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, font
 import random
 import math
+import time
 
 # Constantes globales
 ROWS = 6
@@ -117,22 +118,73 @@ def dessiner_grille(jeu):
             'plateau': '#181818', 'outline': '#00FF41', 'arc': '#39ff14', 'trou': '#101010',
             'jeton1': '#00FF41', 'jeton2': '#FF00C8', 'fg': '#00FF41'
         }
+    # Animation des vagues (océan)
     if jeu['style_var'].get() == "ocean":
+        # Rectangle du plateau
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
-        for i in range(0, COLS*CELL_SIZE, 40):
-            jeu['canvas'].create_arc(i-40, ROWS*CELL_SIZE-40, i+80, ROWS*CELL_SIZE+40, start=0, extent=180, style='arc', outline='#00fff7', width=8)
+        if 'vague_offset' not in jeu:
+            jeu['vague_offset'] = 0
+        if 'vague_last_time' not in jeu:
+            jeu['vague_last_time'] = 0
+        # Correction : utiliser le temps système pour incrémenter l'offset à vitesse constante
+        now = int(time.time() * 1000)
+        if jeu['vague_last_time'] == 0:
+            jeu['vague_last_time'] = now
+        elapsed = now - jeu['vague_last_time']
+        increment = int(elapsed / 120) * 4
+        jeu['vague_offset'] = (jeu['vague_offset'] + increment) % 360
+        jeu['vague_last_time'] = now if increment > 0 else jeu['vague_last_time']
+        # VRAIES vagues en haut
+        for i in range(-80, COLS*CELL_SIZE+80, 80):
+            points = []
+            for t in range(0, 81, 8):
+                x = i + t
+                y = 20 + 18 * math.sin((t + jeu['vague_offset'] + i) / 18)
+                points.append(x)
+                points.append(y)
+            points += [i+80, -40, i, -40]
+            jeu['canvas'].create_polygon(points, fill='#00fff7', outline='', smooth=True)
+        # VRAIES vagues en bas (même sens)
+        for i in range(-80, COLS*CELL_SIZE+80, 80):
+            points = []
+            for t in range(0, 81, 8):
+                x = i + t
+                y = ROWS*CELL_SIZE - 20 + 18 * math.sin((t + jeu['vague_offset'] + i) / 18)
+                points.append(x)
+                points.append(y)
+            points += [i+80, ROWS*CELL_SIZE+40, i, ROWS*CELL_SIZE+40]
+            jeu['canvas'].create_polygon(points, fill='#00fff7', outline='', smooth=True)
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
+        jeu['canvas'].after(40, lambda: dessiner_grille(jeu))
+    # Animation des arbres (jungle)
     elif jeu['style_var'].get() == "jungle":
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
+        if 'arbre_offset' not in jeu:
+            jeu['arbre_offset'] = 0
+        jeu['arbre_offset'] = (jeu['arbre_offset'] + 4) % 360  # Ralentir l'animation des arbres
+        # Arbres en haut
         for i in range(0, COLS*CELL_SIZE, 60):
-            jeu['canvas'].create_rectangle(i+25, ROWS*CELL_SIZE-40, i+35, ROWS*CELL_SIZE, fill='#784421', outline='')
-            jeu['canvas'].create_oval(i+10, ROWS*CELL_SIZE-70, i+50, ROWS*CELL_SIZE-30, fill='#229954', outline='')
+            sway = int(8 * math.sin((i + jeu['arbre_offset'])/30))
+            jeu['canvas'].create_rectangle(i+25+sway, 0, i+35+sway, 40, fill='#784421', outline='')
+            jeu['canvas'].create_oval(i+10+sway, -30, i+50+sway, 30, fill='#229954', outline='')
+        # Arbres en bas
+        for i in range(0, COLS*CELL_SIZE, 60):
+            sway = int(8 * math.sin((i + jeu['arbre_offset'])/30))
+            jeu['canvas'].create_rectangle(i+25+sway, ROWS*CELL_SIZE-40, i+35+sway, ROWS*CELL_SIZE, fill='#784421', outline='')
+            jeu['canvas'].create_oval(i+10+sway, ROWS*CELL_SIZE-70, i+50+sway, ROWS*CELL_SIZE-30, fill='#229954', outline='')
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
+        jeu['canvas'].after(160, lambda: dessiner_grille(jeu))  # Ralentir le rafraîchissement
+    # Animation glitch (lignes qui bougent)
     elif jeu['style_var'].get() == "glitch":
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
+        if 'glitch_offset' not in jeu:
+            jeu['glitch_offset'] = 0
         for i in range(0, ROWS*CELL_SIZE, 18):
-            jeu['canvas'].create_line(0, i, COLS*CELL_SIZE, i, fill=random.choice(['#ff00cc', '#00fff7', '#fff']), width=2)
+            offset = random.randint(-jeu['glitch_offset'], jeu['glitch_offset'])
+            jeu['canvas'].create_line(0, i+offset, COLS*CELL_SIZE, i+offset, fill=random.choice(['#ff00cc', '#00fff7', '#fff']), width=2)
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
+        jeu['glitch_offset'] = (jeu['glitch_offset'] + 1) % 6
+        jeu['canvas'].after(80, lambda: dessiner_grille(jeu))
     else:
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
@@ -319,4 +371,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     jeu = creer_jeu(root)
     root.mainloop()
-
