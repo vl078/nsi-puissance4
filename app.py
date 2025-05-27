@@ -67,6 +67,17 @@ def creer_jeu(root):
         jeu['menu_style'].add_radiobutton(label=style.capitalize(), variable=jeu['style_var'], value=style, command=lambda: changer_style(jeu))
     jeu['bouton_style'].config(menu=jeu['menu_style'])
     jeu['bouton_style'].pack(pady=(0,10))
+    jeu['vs_ia'] = False  # Mode IA désactivé par défaut
+    def activer_ia():
+        jeu['vs_ia'] = not jeu['vs_ia']
+        if jeu['vs_ia']:
+            jeu['bouton_ia'].config(text="Mode 2 joueurs")
+            if jeu['tour'] == 'yellow' and not jeu['animating']:
+                jouer_coup_ia(jeu)
+        else:
+            jeu['bouton_ia'].config(text="Jouer contre l'IA")
+    jeu['bouton_ia'] = tk.Button(jeu['frame'], text="Jouer contre l'IA", command=activer_ia, font=jeu['custom_font'], bg='#222', fg='#00FF41', activebackground='#00FF41', activeforeground='#101010', borderwidth=2, relief='ridge')
+    jeu['bouton_ia'].pack(pady=(0,10))
     creer_grille(jeu)
     jeu['tour'] = 'red'
     jeu['animating'] = False
@@ -209,6 +220,10 @@ def dessiner_grille(jeu):
 def jouer_coup(jeu, event):
     if jeu['animating']:
         return
+    # Annule le timer d'inactivité si présent
+    if 'inactivity_timer' in jeu and jeu['inactivity_timer'] is not None:
+        jeu['root'].after_cancel(jeu['inactivity_timer'])
+        jeu['inactivity_timer'] = None
     col = event.x // CELL_SIZE
     if col < 0 or col >= COLS:
         return
@@ -220,8 +235,102 @@ def jouer_coup(jeu, event):
     if ligne != -1:
         animer_jeton(jeu, ligne, col, jeu['tour'])
 
+def jouer_coup_ia(jeu):
+    if jeu['animating']:
+        return
+    # IA intelligente : 1. Cherche à gagner, 2. Bloque l'adversaire, 3. Sinon joue au hasard
+    colonnes_valides = [col for col in range(COLS) if jeu['grille'][0][col] is None]
+    if not colonnes_valides:
+        return
+    # 1. Cherche un coup gagnant pour l'IA
+    for col in colonnes_valides:
+        row = -1
+        for r in range(ROWS-1, -1, -1):
+            if jeu['grille'][r][col] is None:
+                row = r
+                break
+        if row != -1:
+            jeu['grille'][row][col] = 'yellow'
+            if verifier_victoire(jeu, row, col):
+                jeu['grille'][row][col] = None
+                animer_jeton(jeu, row, col, 'yellow')
+                return
+            jeu['grille'][row][col] = None
+    # 2. Bloque un coup gagnant du joueur humain
+    for col in colonnes_valides:
+        row = -1
+        for r in range(ROWS-1, -1, -1):
+            if jeu['grille'][r][col] is None:
+                row = r
+                break
+        if row != -1:
+            jeu['grille'][row][col] = 'red'
+            if verifier_victoire(jeu, row, col):
+                jeu['grille'][row][col] = None
+                animer_jeton(jeu, row, col, 'yellow')
+                return
+            jeu['grille'][row][col] = None
+    # 3. Sinon, joue au hasard
+    col = random.choice(colonnes_valides)
+    row = -1
+    for r in range(ROWS-1, -1, -1):
+        if jeu['grille'][r][col] is None:
+            row = r
+            break
+    if row != -1:
+        animer_jeton(jeu, row, col, 'yellow')
+
+def jouer_coup_ia_rouge(jeu):
+    # IA joue pour le joueur rouge après 15s d'inactivité
+    if jeu['animating'] or jeu['tour'] != 'red':
+        return
+    colonnes_valides = [col for col in range(COLS) if jeu['grille'][0][col] is None]
+    if not colonnes_valides:
+        return
+    # 1. Cherche un coup gagnant pour l'IA
+    for col in colonnes_valides:
+        row = -1
+        for r in range(ROWS-1, -1, -1):
+            if jeu['grille'][r][col] is None:
+                row = r
+                break
+        if row != -1:
+            jeu['grille'][row][col] = 'red'
+            if verifier_victoire(jeu, row, col):
+                jeu['grille'][row][col] = None
+                animer_jeton(jeu, row, col, 'red')
+                return
+            jeu['grille'][row][col] = None
+    # 2. Bloque un coup gagnant du jaune
+    for col in colonnes_valides:
+        row = -1
+        for r in range(ROWS-1, -1, -1):
+            if jeu['grille'][r][col] is None:
+                row = r
+                break
+        if row != -1:
+            jeu['grille'][row][col] = 'yellow'
+            if verifier_victoire(jeu, row, col):
+                jeu['grille'][row][col] = None
+                animer_jeton(jeu, row, col, 'red')
+                return
+            jeu['grille'][row][col] = None
+    # 3. Sinon, joue au hasard
+    col = random.choice(colonnes_valides)
+    row = -1
+    for r in range(ROWS-1, -1, -1):
+        if jeu['grille'][r][col] is None:
+            row = r
+            break
+    if row != -1:
+        animer_jeton(jeu, row, col, 'red')
+
 def animer_jeton(jeu, row_final, col, couleur):
     jeu['animating'] = True
+    # Annule le timer d'inactivité si un jeton est en animation
+    if 'inactivity_timer' in jeu and jeu['inactivity_timer'] is not None:
+        jeu['root'].after_cancel(jeu['inactivity_timer'])
+        jeu['inactivity_timer'] = None
     def animation(etape):
         if etape > row_final:
             jeu['grille'][row_final][col] = couleur
@@ -243,6 +352,15 @@ def animer_jeton(jeu, row_final, col, couleur):
                 else:
                     jeu['label_tour'].config(text="Au tour du joueur Jaune", fg=COULEURS['yellow'])
                 jeu['animating'] = False
+                # Timer d'inactivité pour le joueur rouge en mode IA
+                if jeu.get('vs_ia', False) and jeu['tour'] == 'red':
+                    def auto_rouge():
+                        if not jeu['animating'] and jeu['tour'] == 'red':
+                            jouer_coup_ia_rouge(jeu)
+                    jeu['inactivity_timer'] = jeu['root'].after(15000, auto_rouge)
+                # Si mode IA et c'est à l'IA de jouer, elle joue automatiquement
+                if jeu.get('vs_ia', False) and jeu['tour'] == 'yellow':
+                    jeu['root'].after(400, lambda: jouer_coup_ia(jeu))
             return
         dessiner_grille(jeu)
         x1 = col * CELL_SIZE + 12
@@ -327,15 +445,28 @@ def animer_victoire(jeu, positions, couleur):
     blink(0)
 
 def lancer_confettis(jeu, positions, couleur):
+    # Empêche de lancer plusieurs animations de confettis en même temps
+    if getattr(jeu, 'confetti_animating', False):
+        return
+    jeu.confetti_animating = True
     couleurs_confetti = ['#00FF41', '#FF00C8', '#39ff14', '#00fff7', '#fff', '#222']
-    for i in range(100):
+    confetti_count = 30  # Limite le nombre de confettis
+    confetti_restants = {'count': confetti_count}
+    def confetti_callback():
+        confetti_restants['count'] -= 1
+        if confetti_restants['count'] <= 0:
+            jeu.confetti_animating = False
+    for i in range(confetti_count):
         x = random.randint(0, COLS*CELL_SIZE)
         y = random.randint(0, 40)
         color = random.choice(couleurs_confetti)
         confetti = creer_confetti(jeu['canvas'], x, y, color)
         confetti['size'] = random.randint(8, 22)
         jeu['canvas'].itemconfig(confetti['oval'], width=0)
-        confetti.move()
+        def move_and_callback(confetti=confetti):
+            move_confetti(confetti)
+            confetti_callback()
+        move_and_callback()
 
 def verifier_victoire(jeu, row, col):
     directions = [(0,1), (1,0), (1,1), (1,-1)]
