@@ -60,14 +60,14 @@ def creer_jeu(root):
     jeu['bouton_restart'].pack(pady=10)
     jeu['bouton_score'] = tk.Button(jeu['frame'], text="Score", command=lambda: afficher_score_avec_animation(jeu), font=jeu['custom_font'], bg='#00FF41', fg='#101010', activebackground='#222', activeforeground='#00FF41', borderwidth=2, relief='ridge')
     jeu['bouton_score'].pack(pady=(0,10))
-    jeu['style_var'] = tk.StringVar(value="matrix")
+    jeu['style_var'] = tk.StringVar(value="normal")
     jeu['bouton_style'] = tk.Menubutton(jeu['frame'], text="Style", font=jeu['custom_font'], bg='#222', fg='#00FF41', activebackground='#00FF41', activeforeground='#101010', borderwidth=2, relief='ridge')
     jeu['menu_style'] = tk.Menu(jeu['bouton_style'], tearoff=0)
-    for style in ["matrix", "glitch", "normal", "jungle", "ocean"]:
+    for style in ["normal", "jungle", "ete", "mythique"]:
         jeu['menu_style'].add_radiobutton(label=style.capitalize(), variable=jeu['style_var'], value=style, command=lambda: changer_style(jeu))
     jeu['bouton_style'].config(menu=jeu['menu_style'])
     jeu['bouton_style'].pack(pady=(0,10))
-    jeu['vs_ia'] = False  # Mode IA désactivé par défaut
+    jeu['vs_ia'] = False
     def activer_ia():
         jeu['vs_ia'] = not jeu['vs_ia']
         if jeu['vs_ia']:
@@ -96,26 +96,58 @@ def creer_grille(jeu):
 
 def changer_style(jeu):
     style = jeu['style_var'].get()
-    if style == "matrix":
-        appliquer_style(jeu, bg='#101010', fg='#00FF41', jeton1='#00FF41', jeton2='#FF00C8', plateau='#181818', outline='#00FF41', arc='#39ff14', trou='#101010', fontfam="Consolas")
-    elif style == "glitch":
-        appliquer_style(jeu, bg='#1a0033', fg='#ff00cc', jeton1='#ff00cc', jeton2='#00fff7', plateau='#2d0036', outline='#ff00cc', arc='#00fff7', trou='#0a001a', fontfam="Courier New")
-    elif style == "normal":
+    if style == "normal":
         appliquer_style(jeu, bg='#2471a3', fg='#e74c3c', jeton1='#e74c3c', jeton2='#f1c40f', plateau='#2471a3', outline='#154360', arc='#fff', trou='#eaf6fb', fontfam="Arial")
     elif style == "jungle":
         appliquer_style(jeu, bg='#184d27', fg='#f1c40f', jeton1='#27ae60', jeton2='#f1c40f', plateau='#145a32', outline='#229954', arc='#f7ca18', trou='#d4efdf', fontfam="Comic Sans MS")
-    elif style == "ocean":
-        appliquer_style(jeu, bg='#0e4d92', fg='#00fff7', jeton1='#00fff7', jeton2='#0055ff', plateau='#0e4d92', outline='#00fff7', arc='#fff', trou='#eaf6fb', fontfam="Verdana")
+    elif style == "ete":
+        appliquer_style(jeu, bg='#ffe066', fg='#ff5733', jeton1='#ff5733', jeton2='#ffe066', plateau='#ffe066', outline='#ffb347', arc='#fff', trou='#fffbe6', fontfam="Comic Sans MS")
+    elif style == "mythique":
+        appliquer_style(jeu, bg='#2d014d', fg='#ffd700', jeton1='#ffd700', jeton2='#a259e6', plateau='#2d014d', outline='#a259e6', arc='#fff', trou='#3d1a5a', fontfam="Papyrus")
     dessiner_grille(jeu)
 
 def appliquer_style(jeu, bg, fg, jeton1, jeton2, plateau, outline, arc, trou, fontfam):
+    # Création de la police personnalisée
+    jeu['custom_font'] = font.Font(family=fontfam, size=20, weight="bold")
     jeu['root'].configure(bg=bg)
     jeu['frame'].configure(bg=bg)
-    jeu['label_tour'].configure(bg=bg, fg=fg, font=font.Font(family=fontfam, size=18, weight="bold"))
-    jeu['bouton_restart'].configure(bg=outline, fg=fg, activebackground=fg, activeforeground=bg)
-    jeu['bouton_score'].configure(bg=fg, fg=bg, activebackground=outline, activeforeground=fg)
-    jeu['bouton_style'].configure(bg=outline, fg=fg, activebackground=fg, activeforeground=bg)
-    jeu['custom_font'] = font.Font(family=fontfam, size=18, weight="bold")
+    jeu['label_tour'].configure(bg=bg, fg=fg, font=jeu['custom_font'])
+
+    # Configuration unifiée des boutons (police + couleurs explicites, sans effet de survol)
+    bouton_params = {
+        'font': jeu['custom_font'],
+        'borderwidth': 3,
+        'relief': 'groove',
+        'highlightthickness': 2,
+        'highlightbackground': fg,
+        'highlightcolor': fg,
+        'cursor': 'hand2',
+        'activebackground': outline,  # même couleur que bg pour supprimer effet hover
+        'activeforeground': fg,       # même couleur que fg pour supprimer effet hover
+    }
+    jeu['bouton_restart'].configure(
+        bg=outline, fg=fg, **bouton_params
+    )
+    jeu['bouton_score'].configure(
+        bg=fg, fg=bg, activebackground=fg, activeforeground=bg, font=jeu['custom_font'], borderwidth=3, relief='groove', highlightthickness=2, highlightbackground=fg, highlightcolor=fg, cursor='hand2'
+    )
+    jeu['bouton_style'].configure(
+        bg=outline, fg=fg, **bouton_params
+    )
+    jeu['bouton_ia'].configure(
+        bg=outline, fg=fg, **bouton_params
+    )
+
+    # Appliquer la police et les couleurs au menu du Menubutton
+    try:
+        jeu['menu_style'].config(font=jeu['custom_font'], bg=outline, fg=fg, activebackground=outline, activeforeground=fg)
+        end = jeu['menu_style'].index('end')
+        if end is not None:
+            for i in range(end+1):
+                jeu['menu_style'].entryconfig(i, font=jeu['custom_font'], fg=fg, bg=outline, activeforeground=fg, activebackground=outline)
+    except Exception:
+        pass
+
     jeu['current_style'] = {
         'plateau': plateau, 'outline': outline, 'arc': arc, 'trou': trou,
         'jeton1': jeton1, 'jeton2': jeton2, 'fg': fg
@@ -129,46 +161,13 @@ def dessiner_grille(jeu):
             'plateau': '#181818', 'outline': '#00FF41', 'arc': '#39ff14', 'trou': '#101010',
             'jeton1': '#00FF41', 'jeton2': '#FF00C8', 'fg': '#00FF41'
         }
-    # Animation des vagues (océan)
-    if jeu['style_var'].get() == "ocean":
-        # Rectangle du plateau
-        jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
-        if 'vague_offset' not in jeu:
-            jeu['vague_offset'] = 0
-        if 'vague_last_time' not in jeu:
-            jeu['vague_last_time'] = 0
-        # Correction : utiliser le temps système pour incrémenter l'offset à vitesse constante
-        now = int(time.time() * 1000)
-        if jeu['vague_last_time'] == 0:
-            jeu['vague_last_time'] = now
-        elapsed = now - jeu['vague_last_time']
-        increment = int(elapsed / 120) * 4
-        jeu['vague_offset'] = (jeu['vague_offset'] + increment) % 360
-        jeu['vague_last_time'] = now if increment > 0 else jeu['vague_last_time']
-        # VRAIES vagues en haut
-        for i in range(-80, COLS*CELL_SIZE+80, 80):
-            points = []
-            for t in range(0, 81, 8):
-                x = i + t
-                y = 20 + 18 * math.sin((t + jeu['vague_offset'] + i) / 18)
-                points.append(x)
-                points.append(y)
-            points += [i+80, -40, i, -40]
-            jeu['canvas'].create_polygon(points, fill='#00fff7', outline='', smooth=True)
-        # VRAIES vagues en bas (même sens)
-        for i in range(-80, COLS*CELL_SIZE+80, 80):
-            points = []
-            for t in range(0, 81, 8):
-                x = i + t
-                y = ROWS*CELL_SIZE - 20 + 18 * math.sin((t + jeu['vague_offset'] + i) / 18)
-                points.append(x)
-                points.append(y)
-            points += [i+80, ROWS*CELL_SIZE+40, i, ROWS*CELL_SIZE+40]
-            jeu['canvas'].create_polygon(points, fill='#00fff7', outline='', smooth=True)
-        jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
-        jeu['canvas'].after(40, lambda: dessiner_grille(jeu))
+    # Amélioration esthétique : ombre portée et reflets sur le plateau
+    jeu['canvas'].create_rectangle(8, 8, COLS*CELL_SIZE+8, ROWS*CELL_SIZE+8, fill='#222', outline='', width=0)
+    jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=14)
+    # Reflet sur le plateau
+    jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE//1.5, start=0, extent=180, style='arc', outline='#fff', width=4)
     # Animation des arbres (jungle)
-    elif jeu['style_var'].get() == "jungle":
+    if jeu['style_var'].get() == "jungle":
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
         if 'arbre_offset' not in jeu:
             jeu['arbre_offset'] = 0
@@ -185,17 +184,33 @@ def dessiner_grille(jeu):
             jeu['canvas'].create_oval(i+10+sway, ROWS*CELL_SIZE-70, i+50+sway, ROWS*CELL_SIZE-30, fill='#229954', outline='')
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
         jeu['canvas'].after(160, lambda: dessiner_grille(jeu))  # Ralentir le rafraîchissement
-    # Animation glitch (lignes qui bougent)
-    elif jeu['style_var'].get() == "glitch":
-        jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
-        if 'glitch_offset' not in jeu:
-            jeu['glitch_offset'] = 0
-        for i in range(0, ROWS*CELL_SIZE, 18):
-            offset = random.randint(-jeu['glitch_offset'], jeu['glitch_offset'])
-            jeu['canvas'].create_line(0, i+offset, COLS*CELL_SIZE, i+offset, fill=random.choice(['#ff00cc', '#00fff7', '#fff']), width=2)
-        jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
-        jeu['glitch_offset'] = (jeu['glitch_offset'] + 1) % 6
+    # Animation été : soleil en haut à droite
+    elif jeu['style_var'].get() == "ete":
+        jeu['canvas'].create_oval(COLS*CELL_SIZE-80, -40, COLS*CELL_SIZE+40, 80, fill='#fff700', outline='')
+        for i in range(12):
+            angle = i * 30
+            x1 = COLS*CELL_SIZE-20 + 60*math.cos(math.radians(angle))
+            y1 = 40 + 60*math.sin(math.radians(angle))
+            x2 = COLS*CELL_SIZE-20 + 80*math.cos(math.radians(angle))
+            y2 = 40 + 80*math.sin(math.radians(angle))
+            jeu['canvas'].create_line(x1, y1, x2, y2, fill='#fff700', width=4)
+    # Animation mythique : éclairs animés en haut du plateau
+    elif jeu['style_var'].get() == "mythique":
+        # Eclairs animés
+        if 'eclair_offset' not in jeu:
+            jeu['eclair_offset'] = 0
+        jeu['eclair_offset'] = (jeu['eclair_offset'] + 1) % 40
+        for i in range(3):
+            base_x = 60 + i*180 + random.randint(-10, 10)
+            base_y = 10 + random.randint(-5, 5)
+            points = [base_x, base_y]
+            for j in range(5):
+                points.append(base_x + random.randint(-20, 20))
+                points.append(base_y + 20 + j*12 + random.randint(-8, 8))
+            jeu['canvas'].create_line(points, fill='#ffd700', width=5, smooth=True)
+            jeu['canvas'].create_line(points, fill='#fff', width=2, smooth=True)
         jeu['canvas'].after(80, lambda: dessiner_grille(jeu))
+    # Animation glitch (lignes qui bougent) et ocean supprimés
     else:
         jeu['canvas'].create_rectangle(0, 0, COLS*CELL_SIZE, ROWS*CELL_SIZE, fill=style['plateau'], outline=style['outline'], width=12)
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
@@ -206,6 +221,8 @@ def dessiner_grille(jeu):
             x2 = x1 + CELL_SIZE - 24
             y2 = y1 + CELL_SIZE - 24
             couleur = jeu['grille'][row][col]
+            # Effet d'ombre sous chaque jeton
+            jeu['canvas'].create_oval(x1+JETON_BORDER+4, y1+JETON_BORDER+4, x2+JETON_BORDER+4, y2+JETON_BORDER+4, fill='#222', outline='')
             if couleur is not None:
                 jeu['canvas'].create_oval(x1+JETON_BORDER, y1+JETON_BORDER, x2+JETON_BORDER, y2+JETON_BORDER, fill='#636e72', outline='')
                 if couleur == 'red':
@@ -213,7 +230,9 @@ def dessiner_grille(jeu):
                 else:
                     fill_color = style['jeton2']
                 jeu['canvas'].create_oval(x1, y1, x2, y2, fill=fill_color, outline=style['outline'], width=5)
+                # Reflet sur le jeton
                 jeu['canvas'].create_arc(x1+10, y1+10, x2-10, y2-10, start=120, extent=120, style='arc', outline=style['arc'], width=7)
+                jeu['canvas'].create_oval(x1+18, y1+18, x1+32, y1+32, fill='#fff', outline='')
             else:
                 jeu['canvas'].create_oval(x1, y1, x2, y2, fill=style['trou'], outline=style['outline'], width=2)
 
@@ -259,7 +278,7 @@ def jouer_coup_ia(jeu):
     # 2. Bloque un coup gagnant du joueur humain
     for col in colonnes_valides:
         row = -1
-        for r in range(ROWS-1, -1, -1):
+        for r in range(ROWS-1, -1):
             if jeu['grille'][r][col] is None:
                 row = r
                 break
@@ -304,7 +323,7 @@ def jouer_coup_ia_rouge(jeu):
     # 2. Bloque un coup gagnant du jaune
     for col in colonnes_valides:
         row = -1
-        for r in range(ROWS-1, -1, -1):
+        for r in range(ROWS-1, -1):
             if jeu['grille'][r][col] is None:
                 row = r
                 break
@@ -335,6 +354,7 @@ def animer_jeton(jeu, row_final, col, couleur):
         if etape > row_final:
             jeu['grille'][row_final][col] = couleur
             dessiner_grille(jeu)
+            # (Suppression de l'effet sonore)
             positions = verifier_victoire(jeu, row_final, col)
             if positions is not None:
                 if couleur == 'red':
@@ -352,15 +372,14 @@ def animer_jeton(jeu, row_final, col, couleur):
                 else:
                     jeu['label_tour'].config(text="Au tour du joueur Jaune", fg=COULEURS['yellow'])
                 jeu['animating'] = False
-                # Timer d'inactivité pour le joueur rouge en mode IA
-                if jeu.get('vs_ia', False) and jeu['tour'] == 'red':
-                    def auto_rouge():
-                        if not jeu['animating'] and jeu['tour'] == 'red':
+                # Timer d'inactivité pour tous les modes, à chaque tour
+                def auto_joue():
+                    if not jeu['animating']:
+                        if jeu['tour'] == 'red':
                             jouer_coup_ia_rouge(jeu)
-                    jeu['inactivity_timer'] = jeu['root'].after(15000, auto_rouge)
-                # Si mode IA et c'est à l'IA de jouer, elle joue automatiquement
-                if jeu.get('vs_ia', False) and jeu['tour'] == 'yellow':
-                    jeu['root'].after(400, lambda: jouer_coup_ia(jeu))
+                        elif jeu['tour'] == 'yellow':
+                            jouer_coup_ia(jeu)
+                jeu['inactivity_timer'] = jeu['root'].after(15000, auto_joue)
             return
         dessiner_grille(jeu)
         x1 = col * CELL_SIZE + 12
@@ -492,11 +511,23 @@ def verifier_victoire(jeu, row, col):
     return None
 
 def reinitialiser(jeu):
+    # Annule le timer d'inactivité si présent
+    if 'inactivity_timer' in jeu and jeu['inactivity_timer'] is not None:
+        jeu['root'].after_cancel(jeu['inactivity_timer'])
+        jeu['inactivity_timer'] = None
     creer_grille(jeu)
     jeu['tour'] = 'red'
     jeu['label_tour'].config(text="Au tour du joueur Rouge", fg=COULEURS['red'])
     dessiner_grille(jeu)
     jeu['animating'] = False
+    # Redémarre le timer d'inactivité pour le premier tour
+    def auto_joue():
+        if not jeu['animating']:
+            if jeu['tour'] == 'red':
+                jouer_coup_ia_rouge(jeu)
+            elif jeu['tour'] == 'yellow':
+                jouer_coup_ia(jeu)
+    jeu['inactivity_timer'] = jeu['root'].after(15000, auto_joue)
 
 if __name__ == "__main__":
     root = tk.Tk()
