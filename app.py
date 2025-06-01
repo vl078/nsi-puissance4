@@ -184,7 +184,7 @@ def dessiner_grille(jeu):
             jeu['canvas'].create_oval(i+10+sway, ROWS*CELL_SIZE-70, i+50+sway, ROWS*CELL_SIZE-30, fill='#229954', outline='')
         jeu['canvas'].create_arc(0, -ROWS*CELL_SIZE//2, COLS*CELL_SIZE, ROWS*CELL_SIZE, start=0, extent=180, style='arc', outline=style['outline'], width=10)
         jeu['canvas'].after(160, lambda: dessiner_grille(jeu))  # Ralentir le rafraîchissement
-    # Animation été : soleil en haut à droite
+    # Thème été
     elif jeu['style_var'].get() == "ete":
         jeu['canvas'].create_oval(COLS*CELL_SIZE-80, -40, COLS*CELL_SIZE+40, 80, fill='#fff700', outline='')
         for i in range(12):
@@ -194,7 +194,7 @@ def dessiner_grille(jeu):
             x2 = COLS*CELL_SIZE-20 + 80*math.cos(math.radians(angle))
             y2 = 40 + 80*math.sin(math.radians(angle))
             jeu['canvas'].create_line(x1, y1, x2, y2, fill='#fff700', width=4)
-    # Animation mythique : éclairs animés en haut du plateau
+    # Thème mythique
     elif jeu['style_var'].get() == "mythique":
         # Eclairs animés
         if 'eclair_offset' not in jeu:
